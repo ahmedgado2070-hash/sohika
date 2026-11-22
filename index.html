@@ -1,0 +1,2190 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processing Using Matrices (C++ Engine)</title>
+
+    <style>
+        :root {
+            --bg-body: #ffffff;
+            --bg-surface: #f9fafb;
+            --bg-elevated: #f3f4f6;
+            --primary: #000000;
+            --primary-hover: #262626;
+            --text-main: #000000;
+            --text-muted: #4b5563;
+            --border: #000000;
+            --border-subtle: #d1d5db;
+            --code-bg: #0a0a0a;
+            --code-fg: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #ffffff;
+            border-bottom: 2px solid #000000;
+            padding: 1rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #000000;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            padding: 0.55rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: 2px solid #000000;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link.active {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .nav-link:not(.active) {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .nav-link:not(.active):hover {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 1500px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .studio-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .sidebar-controls {
+            background: var(--bg-surface);
+            border: 2px solid #000000;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #000000;
+            margin-bottom: 12px;
+            border-bottom: 1.5px solid #000000;
+            padding-bottom: 6px;
+        }
+
+        .op-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .op-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #ffffff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1.5px solid var(--border-subtle);
+            transition: 0.15s;
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+
+        .op-card:hover {
+            border-color: #000000;
+        }
+
+        .op-card input[type="radio"] {
+            accent-color: #000000;
+            width: 16px;
+            height: 16px;
+        }
+
+        .slider-control {
+            background: #ffffff;
+            border: 1.5px solid var(--border-subtle);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .badge-val {
+            background: #000000;
+            color: #ffffff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #000000;
+            cursor: pointer;
+        }
+
+        .action-btn {
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #000000;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.98rem;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+
+        .action-btn:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .secondary-btn {
+            background: #ffffff;
+            color: #000000;
+            border: 1.5px solid #000000;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .secondary-btn:hover {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .workspace-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .metric-box {
+            background: var(--bg-surface);
+            border: 1.5px solid #000000;
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .metric-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #000000;
+            font-family: monospace;
+        }
+
+        .canvas-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .img-card {
+            background: var(--bg-surface);
+            border: 2px dashed #000000;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .img-card.upload-zone {
+            cursor: pointer;
+        }
+
+        .img-card.upload-zone:hover {
+            background: #f3f4f6;
+        }
+
+        .img-card.output-zone {
+            border-style: solid;
+        }
+
+        .card-tag {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #000000;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            z-index: 2;
+        }
+
+        .img-card img,
+        .img-card canvas {
+            max-width: 100%;
+            max-height: 270px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            object-fit: contain;
+            display: none;
+        }
+
+        .placeholder-info {
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .placeholder-icon {
+            font-size: 2.6rem;
+            margin-bottom: 10px;
+        }
+
+        .matrix-panel {
+            background: var(--bg-surface);
+            border: 2px solid #000000;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .matrix-output {
+            background: var(--code-bg);
+            color: var(--code-fg);
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.84rem;
+            padding: 15px;
+            border-radius: 8px;
+            direction: ltr;
+            text-align: left;
+            white-space: pre;
+            overflow-x: auto;
+            min-height: 170px;
+            line-height: 1.55;
+        }
+
+        /* قسم الشرح الأصلي - أسفل الاستوديو */
+
+        .formula-section {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .formula-display-box {
+            background: #000000;
+            color: #ffffff;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.15rem;
+            font-weight: 700;
+            direction: ltr;
+            text-align: center;
+            margin: 14px 0 20px 0;
+            letter-spacing: 0.5px;
+            overflow-x: auto;
+        }
+
+        .explanation-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            line-height: 1.85;
+            font-size: 0.96rem;
+        }
+
+        .explanation-grid ul {
+            padding-right: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .weights-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.92rem;
+        }
+
+        .weights-table th,
+        .weights-table td {
+            border: 1.5px solid #000000;
+            padding: 10px 14px;
+            text-align: right;
+        }
+
+        .weights-table th {
+            background: #000000;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .weights-table tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .math-note {
+            background: #f3f4f6;
+            border-right: 4px solid #000000;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .ltr-inline {
+            direction: ltr;
+            display: inline-block;
+            font-family: monospace;
+            font-weight: 700;
+            background: #f3f4f6;
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+        }
+
+        /* الإضافات الجديدة للشرح الحسابي وكود C++ */
+
+        .detail-box {
+            border: 1.5px solid #000000;
+            border-radius: 9px;
+            padding: 16px;
+            background: #ffffff;
+        }
+
+        .detail-box h4 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .calculation-box {
+            background: #f3f4f6;
+            border: 1px solid #000000;
+            border-radius: 8px;
+            padding: 15px;
+            direction: ltr;
+            text-align: left;
+            font-family: Consolas, monospace;
+            line-height: 2;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .cpp-explanation {
+            line-height: 1.9;
+        }
+
+        .cpp-explanation li {
+            margin-bottom: 7px;
+        }
+
+        .cpp-code {
+            background: #0a0a0a;
+            color: #f8fafc;
+            border-radius: 8px;
+            padding: 18px;
+            direction: ltr;
+            text-align: left;
+            overflow-x: auto;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.88rem;
+            line-height: 1.65;
+            white-space: pre;
+            margin-top: 12px;
+            tab-size: 4;
+        }
+
+        .code-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .copy-code-btn {
+            background: #ffffff;
+            color: #000000;
+            border: 1.5px solid #000000;
+            padding: 7px 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .copy-code-btn:hover {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .step-list {
+            padding-right: 22px;
+            line-height: 2;
+        }
+
+        .step-list li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 1024px) {
+            .studio-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .canvas-pair {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 1rem;
+            }
+
+            .brand {
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                width: 100%;
+            }
+
+            .nav-link {
+                flex: 1;
+                text-align: center;
+                padding: 9px 5px;
+            }
+
+            .container {
+                padding: 12px;
+            }
+
+            .metrics-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .formula-section {
+                padding: 14px;
+            }
+
+            .formula-display-box {
+                font-size: 0.9rem;
+            }
+
+            .weights-table {
+                font-size: 0.78rem;
+            }
+
+            .weights-table th,
+            .weights-table td {
+                padding: 7px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="brand">
+        <span>🖼</span>
+        <span>Image Processing Using Matrices (C++ Engine)</span>
+    </div>
+
+    <nav class="nav-links">
+        <a href="index.html" class="nav-link active">🎛 الاستوديو التفاعلي</a>
+        <a href="cpp-code.html" class="nav-link">💻 كود الـ C++</a>
+    </nav>
+</header>
+
+<div class="container">
+
+    <!-- الاستوديو الأصلي بدون تغيير في تقسيمه -->
+
+    <div class="studio-grid">
+
+        <aside class="sidebar-controls">
+
+            <div>
+                <div class="section-title">🧮 اختر العملية الرياضية</div>
+
+                <div class="op-list">
+
+                    <label class="op-card">
+                        <input type="radio" name="op" value="Grayscale"
+                               checked onchange="onOperationChange()">
+                        <span>🎨 Grayscale — تحويل لرمادي</span>
+                    </label>
+
+                    <label class="op-card">
+                        <input type="radio" name="op" value="Brightness"
+                               onchange="onOperationChange()">
+                        <span>☀ Brightness — تعديل السطوع</span>
+                    </label>
+
+                    <label class="op-card">
+                        <input type="radio" name="op" value="Flip"
+                               onchange="onOperationChange()">
+                        <span>🔄 Horizontal Flip — قلب أفقي</span>
+                    </label>
+
+                    <label class="op-card">
+                        <input type="radio" name="op" value="BW"
+                               onchange="onOperationChange()">
+                        <span>🏁 Black &amp; White — أبيض وأسود</span>
+                    </label>
+
+                    <label class="op-card">
+                        <input type="radio" name="op" value="Rotate"
+                               onchange="onOperationChange()">
+                        <span>🔄 Rotate 90° — تدوير الصورة</span>
+                    </label>
+
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">🎛 معاملات الضبط</div>
+
+                <div class="slider-control">
+                    <div class="slider-header">
+                        <span>☀ السطوع (Brightness β)</span>
+                        <span class="badge-val" id="beta-display">60</span>
+                    </div>
+
+                    <input type="range" id="beta-input"
+                           min="-150" max="150" value="60"
+                           oninput="onParamChange()">
+                </div>
+
+                <div class="slider-control">
+                    <div class="slider-header">
+                        <span>🏁 عتبة الأبيض والأسود (T)</span>
+                        <span class="badge-val" id="thresh-display">127</span>
+                    </div>
+
+                    <input type="range" id="thresh-input"
+                           min="0" max="255" value="127"
+                           oninput="onParamChange()">
+                </div>
+            </div>
+
+            <button class="action-btn" onclick="processSingle()">
+                ⚡ تطبيق وتحديث المصفوفة
+            </button>
+
+        </aside>
+
+        <main class="workspace-area">
+
+            <div class="metrics-row">
+
+                <div class="metric-box">
+                    <span class="metric-label">📐 Original Size</span>
+                    <span class="metric-value" id="stat-orig">-</span>
+                </div>
+
+                <div class="metric-box">
+                    <span class="metric-label">🔄 Processed Size</span>
+                    <span class="metric-value" id="stat-proc">-</span>
+                </div>
+
+                <div class="metric-box">
+                    <span class="metric-label">🔢 Total Pixels</span>
+                    <span class="metric-value" id="stat-pixels">-</span>
+                </div>
+
+                <div class="metric-box">
+                    <span class="metric-label">⚡ Execution Time</span>
+                    <span class="metric-value" id="stat-time">-</span>
+                </div>
+
+            </div>
+
+            <div class="canvas-pair">
+
+                <div class="img-card upload-zone"
+                     onclick="document.getElementById('file-single').click()">
+
+                    <span class="card-tag">🖼 الصورة الأصلية</span>
+
+                    <input type="file" id="file-single" hidden
+                           accept="image/jpeg, image/png, image/webp"
+                           onchange="loadSingleImage(event)">
+
+                    <div class="placeholder-info" id="orig-placeholder">
+                        <div class="placeholder-icon">📤</div>
+                        <strong>اضغط لاختيار صورة من جهازك</strong>
+                        <p style="font-size: 0.85rem; margin-top: 5px;">
+                            JPG • PNG • WEBP
+                        </p>
+                    </div>
+
+                    <img id="orig-img" alt="Original">
+
+                </div>
+
+                <div class="img-card output-zone">
+
+                    <span class="card-tag">✨ الصورة المعدلة</span>
+
+                    <div class="placeholder-info" id="proc-placeholder">
+                        <div class="placeholder-icon">🪄</div>
+                        <strong>في انتظار معالجة الصورة</strong>
+                        <p style="font-size: 0.85rem; margin-top: 5px;">
+                            ارفع صورة لتطبيق العمليات الرياضية
+                        </p>
+                    </div>
+
+                    <canvas id="proc-canvas"></canvas>
+
+                    <button class="secondary-btn" id="download-btn"
+                            onclick="downloadResult()">
+                        ⬇ تحميل الصورة المعدلة
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="matrix-panel">
+
+                <div class="section-title">
+                    📟 مصفوفة البكسلات الحية (4×4 Center Matrix)
+                </div>
+
+                <div class="matrix-output" id="matrix-console">
+Upload an image to inspect live 2D pixel matrices before &amp; after processing...
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- قسم الشرح أسفل الاستوديو فقط -->
+
+    <section class="formula-section" id="formula-container">
+    </section>
+
+</div>
+
+<script>
+
+let singleImgObj = null;
+
+
+// =====================================================
+// تحميل الصورة
+// =====================================================
+
+function loadSingleImage(event) {
+
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        alert("الملف المختار ليس صورة صحيحة.");
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+
+        const img = new Image();
+
+        img.onload = function() {
+
+            singleImgObj = img;
+
+            const origEl = document.getElementById("orig-img");
+
+            origEl.src = e.target.result;
+            origEl.style.display = "block";
+
+            document.getElementById("orig-placeholder").style.display = "none";
+
+            processSingle();
+        };
+
+        img.onerror = function() {
+            alert("تعذر تحميل الصورة.");
+        };
+
+        img.src = e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+}
+
+
+// =====================================================
+// تغيير العملية
+// =====================================================
+
+function onOperationChange() {
+
+    updateFormulaExplanation();
+
+    if (singleImgObj) {
+        processSingle();
+    }
+}
+
+
+// =====================================================
+// تغيير قيم المعاملات
+// =====================================================
+
+function onParamChange() {
+
+    const beta = document.getElementById("beta-input").value;
+    const thresh = document.getElementById("thresh-input").value;
+
+    document.getElementById("beta-display").innerText = beta;
+    document.getElementById("thresh-display").innerText = thresh;
+
+    updateFormulaExplanation();
+
+    if (singleImgObj) {
+        processSingle();
+    }
+}
+
+
+// =====================================================
+// دالة الحصول على العملية المختارة
+// =====================================================
+
+function getSelectedOperation() {
+
+    return document.querySelector('input[name="op"]:checked').value;
+}
+
+
+// =====================================================
+// تحديث الشرح والمعادلة والحساب وكود C++
+// =====================================================
+
+function updateFormulaExplanation() {
+
+    const op = getSelectedOperation();
+
+    const beta = parseInt(document.getElementById("beta-input").value);
+    const thresh = parseInt(document.getElementById("thresh-input").value);
+
+    const container = document.getElementById("formula-container");
+
+    let content = "";
+
+
+    // -------------------------------------------------
+    // 1 - GRAYSCALE
+    // -------------------------------------------------
+
+    if (op === "Grayscale") {
+
+        const R = 200;
+        const G = 100;
+        const B = 50;
+
+        const redPart = 0.299 * R;
+        const greenPart = 0.587 * G;
+        const bluePart = 0.114 * B;
+
+        const gray = Math.round(redPart + greenPart + bluePart);
+
+        const cppCode = `// تحويل الصورة إلى درجات الرمادي باستخدام OpenCV
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+
+Mat convertToGrayscale(Mat image)
+{
+    // إنشاء مصفوفة جديدة بنفس أبعاد الصورة
+    Mat gray(image.rows, image.cols, CV_8UC1);
+
+    // المرور على جميع الصفوف
+    for (int y = 0; y < image.rows; y++)
+    {
+        // المرور على جميع الأعمدة
+        for (int x = 0; x < image.cols; x++)
+        {
+            // قراءة البكسل من الصورة الأصلية
+            Vec3b pixel = image.at<Vec3b>(y, x);
+
+            // OpenCV يخزن الألوان بترتيب BGR
+            int B = pixel[0];
+            int G = pixel[1];
+            int R = pixel[2];
+
+            // تطبيق معادلة Grayscale
+            int value = 0.299 * R
+                      + 0.587 * G
+                      + 0.114 * B;
+
+            // تخزين الناتج في مصفوفة الرمادي
+            gray.at<uchar>(y, x) = value;
+        }
+    }
+
+    return gray;
+}`;
+
+        content = `
+
+            <div class="section-title">
+                🎨 Grayscale - شرح معادلة تحويل الصورة إلى رمادي
+            </div>
+
+            <div class="formula-display-box">
+                Gray(y,x) = 0.299R + 0.587G + 0.114B
+            </div>
+
+            <div class="explanation-grid">
+
+                <p>
+                    الهدف من هذه العملية هو تحويل الصورة الملونة التي تحتوي على
+                    ثلاث قنوات لونية RGB إلى صورة بدرجات الرمادي.
+                    بدلاً من تخزين ثلاثة ألوان لكل بكسل، نحسب قيمة واحدة تمثل
+                    درجة الإضاءة لهذا البكسل.
+                </p>
+
+                <div class="detail-box">
+                    <h4>1. شرح جميع رموز المعادلة</h4>
+
+                    <ul>
+                        <li><span class="ltr-inline">Gray(y,x)</span>:
+                        قيمة الرمادي الناتجة عند موقع البكسل.</li>
+
+                        <li><span class="ltr-inline">y</span>:
+                        رقم الصف داخل مصفوفة الصورة.</li>
+
+                        <li><span class="ltr-inline">x</span>:
+                        رقم العمود داخل مصفوفة الصورة.</li>
+
+                        <li><span class="ltr-inline">R</span>:
+                        شدة اللون الأحمر، من 0 إلى 255.</li>
+
+                        <li><span class="ltr-inline">G</span>:
+                        شدة اللون الأخضر، من 0 إلى 255.</li>
+
+                        <li><span class="ltr-inline">B</span>:
+                        شدة اللون الأزرق، من 0 إلى 255.</li>
+
+                        <li><span class="ltr-inline">0.299</span>:
+                        وزن اللون الأحمر في حساب الإضاءة.</li>
+
+                        <li><span class="ltr-inline">0.587</span>:
+                        وزن اللون الأخضر في حساب الإضاءة.</li>
+
+                        <li><span class="ltr-inline">0.114</span>:
+                        وزن اللون الأزرق في حساب الإضاءة.</li>
+                    </ul>
+                </div>
+
+                <div class="detail-box">
+                    <h4>2. لماذا نستخدم ثلاثة أوزان مختلفة؟</h4>
+
+                    <p>
+                        لأن العين البشرية لا تستجيب للألوان الثلاثة بنفس الدرجة.
+                        لذلك نعطي اللون الأخضر وزناً أكبر، ثم الأحمر، ثم الأزرق.
+                    </p>
+
+                    <table class="weights-table">
+                        <thead>
+                            <tr>
+                                <th>اللون</th>
+                                <th>المعامل</th>
+                                <th>النسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>الأحمر R</td>
+                                <td>0.299</td>
+                                <td>29.9%</td>
+                            </tr>
+                            <tr>
+                                <td>الأخضر G</td>
+                                <td>0.587</td>
+                                <td>58.7%</td>
+                            </tr>
+                            <tr>
+                                <td>الأزرق B</td>
+                                <td>0.114</td>
+                                <td>11.4%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="math-note">
+                        مجموع الأوزان = 0.299 + 0.587 + 0.114 = 1.000
+                        أي أن مجموع النسب يساوي 100%.
+                    </div>
+                </div>
+
+                <div class="detail-box">
+                    <h4>3. الشرح الحسابي خطوة بخطوة</h4>
+
+                    <p>
+                        لنفترض أن لدينا بكسلاً واحداً قيم ألوانه:
+                        R=200 و G=100 و B=50.
+                    </p>
+
+                    <div class="calculation-box">R = 200
+G = 100
+B = 50
+
+الخطوة الأولى:
+200 × 0.299 = ${redPart.toFixed(2)}
+
+الخطوة الثانية:
+100 × 0.587 = ${greenPart.toFixed(2)}
+
+الخطوة الثالثة:
+50 × 0.114 = ${bluePart.toFixed(2)}
+
+الخطوة الرابعة:
+${redPart.toFixed(2)} + ${greenPart.toFixed(2)} + ${bluePart.toFixed(2)}
+= ${(redPart + greenPart + bluePart).toFixed(2)}
+
+الناتج بعد التقريب = ${gray}</div>
+
+                    <p>
+                        إذن قيمة البكسل الرمادية تساوي
+                        <strong>${gray}</strong> تقريباً.
+                        وبذلك تصبح قيم القنوات الثلاث متساوية:
+                        R=${gray}, G=${gray}, B=${gray}.
+                    </p>
+                </div>
+
+                <div class="detail-box">
+                    <h4>4. شرح تنفيذ المعادلة في C++</h4>
+
+                    <ol class="step-list">
+                        <li>
+                            نستخدم <span class="ltr-inline">Mat</span>
+                            لإنشاء مصفوفة الصورة.
+                        </li>
+                        <li>
+                            نستخدم <span class="ltr-inline">rows</span>
+                            لمعرفة عدد الصفوف.
+                        </li>
+                        <li>
+                            نستخدم <span class="ltr-inline">cols</span>
+                            لمعرفة عدد الأعمدة.
+                        </li>
+                        <li>
+                            نستخدم حلقتي <span class="ltr-inline">for</span>
+                            للمرور على جميع البكسلات.
+                        </li>
+                        <li>
+                            نقرأ قيمة البكسل باستخدام
+                            <span class="ltr-inline">at&lt;Vec3b&gt;(y,x)</span>.
+                        </li>
+                        <li>
+                            نحسب قيمة الرمادي ونخزنها باستخدام
+                            <span class="ltr-inline">at&lt;uchar&gt;(y,x)</span>.
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="detail-box">
+                    <h4>5. كود C++ المستخدم في العملية</h4>
+                    <pre class="cpp-code" id="cpp-code">${escapeHTML(cppCode)}</pre>
+                    <button class="copy-code-btn" onclick="copyCppCode()">
+                        📋 نسخ كود C++
+                    </button>
+                </div>
+
+            </div>
+        `;
+    }
+
+
+    // -------------------------------------------------
+    // 2 - BRIGHTNESS
+    // -------------------------------------------------
+
+    else if (op === "Brightness") {
+
+        const inputValue = 120;
+        const rawValue = inputValue + beta;
+        const outputValue = Math.max(0, Math.min(255, rawValue));
+
+        const cppCode = `// تعديل سطوع الصورة باستخدام OpenCV
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+
+Mat adjustBrightness(Mat image, int beta)
+{
+    // إنشاء صورة ناتجة بنفس أبعاد الصورة الأصلية
+    Mat result(image.rows, image.cols, image.type());
+
+    // المرور على جميع الصفوف
+    for (int y = 0; y < image.rows; y++)
+    {
+        // المرور على جميع الأعمدة
+        for (int x = 0; x < image.cols; x++)
+        {
+            // قراءة قيم BGR للبكسل
+            Vec3b pixel = image.at<Vec3b>(y, x);
+
+            Vec3b newPixel;
+
+            // تعديل اللون الأزرق
+            newPixel[0] = saturate_cast<uchar>(pixel[0] + beta);
+
+            // تعديل اللون الأخضر
+            newPixel[1] = saturate_cast<uchar>(pixel[1] + beta);
+
+            // تعديل اللون الأحمر
+            newPixel[2] = saturate_cast<uchar>(pixel[2] + beta);
+
+            // تخزين البكسل الجديد
+            result.at<Vec3b>(y, x) = newPixel;
+        }
+    }
+
+    return result;
+}`;
+
+        content = `
+
+            <div class="section-title">
+                ☀ Brightness - شرح معادلة تعديل السطوع
+            </div>
+
+            <div class="formula-display-box">
+                Iout = min(255, max(0, Iin + β))
+            </div>
+
+            <div class="explanation-grid">
+
+                <p>
+                    تستخدم هذه العملية لتفتيح الصورة أو تغميقها.
+                    يتم إضافة قيمة ثابتة تسمى Beta إلى كل قناة لونية
+                    في كل بكسل من الصورة.
+                </p>
+
+                <div class="detail-box">
+                    <h4>1. شرح رموز المعادلة</h4>
+
+                    <ul>
+                        <li><span class="ltr-inline">Iin</span>:
+                        قيمة القناة اللونية قبل المعالجة.</li>
+
+                        <li><span class="ltr-inline">Iout</span>:
+                        قيمة القناة اللونية بعد المعالجة.</li>
+
+                        <li><span class="ltr-inline">β (Beta)</span>:
+                        مقدار الزيادة أو النقصان في السطوع، والقيمة الحالية
+                        هي <strong>${beta}</strong>.</li>
+
+                        <li><span class="ltr-inline">max(0,...)</span>:
+                        تمنع القيمة من النزول تحت الصفر.</li>
+
+                        <li><span class="ltr-inline">min(255,...)</span>:
+                        تمنع القيمة من تجاوز 255.</li>
+                    </ul>
+                </div>
+
+                <div class="detail-box">
+                    <h4>2. كيف تعمل المعادلة؟</h4>
+
+                    <p>
+                        إذا كانت Beta موجبة تصبح الصورة أكثر إضاءة.
+                        وإذا كانت سالبة تصبح الصورة أكثر قتامة.
+                        وإذا كانت تساوي صفراً فلن تتغير قيم الألوان.
+                    </p>
+
+                    <ul>
+                        <li>Beta موجبة: زيادة السطوع.</li>
+                        <li>Beta سالبة: تقليل السطوع.</li>
+                        <li>Beta = 0: لا يوجد تغيير.</li>
+                    </ul>
+
+                    <div class="math-note">
+                        القيمة الحالية لمعامل السطوع في الاستوديو:
+                        β = ${beta}
+                    </div>
+                </div>
+
+                <div class="detail-box">
+                    <h4>3. الشرح الحسابي باستخدام القيمة الحالية</h4>
+
+                    <p>
+                        سنفترض أن قيمة قناة لونية في أحد البكسلات تساوي 120.
+                    </p>
+
+                    <div class="calculation-box">Iin = ${inputValue}
+Beta = ${beta}
+
+الخطوة الأولى:
+Iin + Beta = ${inputValue} + (${beta})
+
+الناتج قبل القص:
+${rawValue}
+
+الخطوة الثانية:
+max(0, ${rawValue}) = ${Math.max(0, rawValue)}
+
+الخطوة الثالثة:
+min(255, ${Math.max(0, rawValue)}) = ${outputValue}
+
+الناتج النهائي:
+Iout = ${outputValue}</div>
+
+                    <p>
+                        إذن قيمة البكسل بعد المعالجة تساوي
+                        <strong>${outputValue}</strong>.
+                    </p>
+                </div>
+
+                <div class="detail-box">
+                    <h4>4. لماذا نستخدم min و max؟</h4>
+
+                    <p>
+                        لأن كل قناة لونية في الصورة يجب أن تكون بين 0 و255.
+                        فإذا أصبح الناتج 280 يتم تحويله إلى 255،
+                        وإذا أصبح -20 يتم تحويله إلى 0.
+                    </p>
+                </div>
+
+                <div class="detail-box">
+                    <h4>5. شرح تنفيذ العملية في C++</h4>
+
+                    <ol class="step-list">
+                        <li>
+                            نمر على كل صف وكل عمود باستخدام حلقتي for.
+                        </li>
+                        <li>
+                            نقرأ البكسل باستخدام Vec3b.
+                        </li>
+                        <li>
+                            نضيف Beta إلى القنوات الثلاث B وG وR.
+                        </li>
+                        <li>
+                            نستخدم saturate_cast لمنع تجاوز النطاق 0 إلى 255.
+                        </li>
+                        <li>
+                            نخزن البكسل المعدل في مصفوفة النتيجة.
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="detail-box">
+                    <h4>6. كود C++ المستخدم في العملية</h4>
+                    <pre class="cpp-code" id="cpp-code">${escapeHTML(cppCode)}</pre>
+                    <button class="copy-code-btn" onclick="copyCppCode()">
+                        📋 نسخ كود C++
+                    </button>
+                </div>
+
+            </div>
+        `;
+    }
+
+
+    // -------------------------------------------------
+    // 3 - FLIP
+    // -------------------------------------------------
+
+    else if (op === "Flip") {
+
+        const W = 5;
+        const x = 0;
+        const newX = W - 1 - x;
+
+        const cppCode = `// القلب الأفقي للصورة باستخدام OpenCV
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+
+Mat horizontalFlip(Mat image)
+{
+    // إنشاء صورة ناتجة بنفس الحجم
+    Mat result(image.rows, image.cols, image.type());
+
+    // المرور على الصفوف
+    for (int y = 0; y < image.rows; y++)
+    {
+        // المرور على الأعمدة
+        for (int x = 0; x < image.cols; x++)
+        {
+            // حساب العمود المقابل
+            int newX = image.cols - 1 - x;
+
+            // قراءة البكسل الأصلي
+            Vec3b pixel = image.at<Vec3b>(y, x);
+
+            // تخزينه في العمود المعكوس
+            result.at<Vec3b>(y, newX) = pixel;
+        }
+    }
+
+    return result;
+}`;
+
+        content = `
+
+            <div class="section-title">
+                🔄 Horizontal Flip - شرح معادلة القلب الأفقي
+            </div>
+
+            <div class="formula-display-box">
+                Iout(y,x) = Iin(y,W - 1 - x)
+            </div>
+
+            <div class="explanation-grid">
+
+                <p>
+                    عملية القلب الأفقي تشبه وضع الصورة أمام المرآة.
+                    يتم نقل البكسلات من اليمين إلى اليسار والعكس،
+                    مع الاحتفاظ بنفس ألوان البكسلات الأصلية.
+                </p>
+
+                <div class="detail-box">
+                    <h4>1. شرح رموز المعادلة</h4>
+
+                    <ul>
+                        <li><span class="ltr-inline">Iin</span>:
+                        الصورة الأصلية.</li>
+
+                        <li><span class="ltr-inline">Iout</span>:
+                        الصورة بعد القلب الأفقي.</li>
+
+                        <li><span class="ltr-inline">y</span>:
+                        رقم الصف، ولا يتغير أثناء القلب الأفقي.</li>
+
+                        <li><span class="ltr-inline">x</span>:
+                        رقم العمود الأصلي.</li>
+
+                        <li><span class="ltr-inline">W</span>:
+                        عرض الصورة، أي عدد الأعمدة.</li>
+
+                        <li><span class="ltr-inline">W - 1 - x</span>:
+                        العمود الجديد الذي سينتقل إليه البكسل.</li>
+                    </ul>
+                </div>
+
+                <div class="detail-box">
+                    <h4>2. الفكرة الرياضية</h4>
+
+                    <p>
+                        نقوم بتثبيت الصف y ونغير العمود x إلى العمود المقابل.
+                        لذلك لا يتغير ارتفاع الصورة ولا عرضها.
+                        الذي يتغير فقط هو ترتيب الأعمدة.
+                    </p>
+                </div>
+
+                <div class="detail-box">
+                    <h4>3. الشرح الحسابي خطوة بخطوة</h4>
+
+                    <p>
+                        نفترض أن عرض الصورة W يساوي 5 أعمدة،
+                        ونريد نقل البكسل الموجود في العمود صفر.
+                    </p>
+
+                    <div class="calculation-box">W = ${W}
+x = ${x}
+
+المعادلة:
+NewX = W - 1 - x
+
+التعويض:
+NewX = ${W} - 1 - ${x}
+
+الناتج:
+NewX = ${newX}
+
+إذن:
+البكسل الموجود في العمود 0
+ينتقل إلى العمود 4.</div>
+
+                    <p>
+                        وبنفس الطريقة ينتقل العمود الأخير إلى العمود الأول،
+                        والعمود الثاني إلى ما قبل الأخير.
+                    </p>
+                </div>
+
+                <div class="detail-box">
+                    <h4>4. مثال ترتيب الأعمدة</h4>
+
+                    <table class="weights-table">
+                        <thead>
+                            <tr>
+                                <th>قبل القلب</th>
+                                <th>بعد القلب</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>0</td><td>4</td></tr>
+                            <tr><td>1</td><td>3</td></tr>
+                            <tr><td>2</td><td>2</td></tr>
+                            <tr><td>3</td><td>1</td></tr>
+                            <tr><td>4</td><td>0</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="detail-box">
+                    <h4>5. شرح تنفيذ العملية في C++</h4>
+
+                    <ol class="step-list">
+                        <li>ننشئ صورة جديدة بنفس حجم الصورة الأصلية.</li>
+                        <li>نستخدم حلقة for للمرور على كل صف.</li>
+                        <li>نستخدم حلقة for للمرور على كل عمود.</li>
+                        <li>نحسب العمود الجديد باستخدام image.cols - 1 - x.</li>
+                        <li>ننقل قيمة البكسل إلى العمود الجديد.</li>
+                    </ol>
+                </div>
+
+                <div class="detail-box">
+                    <h4>6. كود C++ المستخدم في العملية</h4>
+                    <pre class="cpp-code" id="cpp-code">${escapeHTML(cppCode)}</pre>
+                    <button class="copy-code-btn" onclick="copyCppCode()">
+                        📋 نسخ كود C++
+                    </button>
+                </div>
+
+            </div>
+        `;
+    }
+
+
+    // -------------------------------------------------
+    // 4 - BLACK AND WHITE
+    // -------------------------------------------------
+
+    else if (op === "BW") {
+
+        const R = 200;
+        const G = 100;
+        const B = 50;
+
+        const gray = 0.299 * R + 0.587 * G + 0.114 * B;
+        const bw = gray >= thresh ? 255 : 0;
+
+        const cppCode = `// تحويل الصورة إلى أبيض وأسود باستخدام Threshold
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+
+Mat convertToBlackWhite(Mat image, int T)
+{
+    // إنشاء مصفوفة رمادية
+    Mat gray;
+
+    // تحويل الصورة الملونة إلى رمادي
+    cvtColor(image, gray, COLOR_BGR2GRAY);
+
+    // إنشاء مصفوفة للصورة الثنائية
+    Mat result(gray.rows, gray.cols, CV_8UC1);
+
+    // المرور على الصفوف
+    for (int y = 0; y < gray.rows; y++)
+    {
+        // المرور على الأعمدة
+        for (int x = 0; x < gray.cols; x++)
+        {
+            // قراءة درجة الرمادي
+            uchar value = gray.at<uchar>(y, x);
+
+            // المقارنة مع العتبة
+            if (value >= T)
+            {
+                result.at<uchar>(y, x) = 255;
+            }
+            else
+            {
+                result.at<uchar>(y, x) = 0;
+            }
+        }
+    }
+
+    return result;
+}`;
+
+        content = `
+
+            <div class="section-title">
+                🏁 Black & White - شرح معادلة الأبيض والأسود
+            </div>
+
+            <div class="formula-display-box">
+                BW(y,x) = 255 if Gray(y,x) ≥ T, otherwise 0
+            </div>
+
+            <div class="explanation-grid">
+
+                <p>
+                    هذه العملية تحول الصورة إلى صورة ثنائية Binary Image.
+                    أي أن كل بكسل سيكون له لون واحد من لونين فقط:
+                    الأبيض أو الأسود.
+                </p>
+
+                <div class="detail-box">
+                    <h4>1. شرح رموز المعادلة</h4>
+
+                    <ul>
+                        <li><span class="ltr-inline">BW(y,x)</span>:
+                        قيمة البكسل الناتجة بعد التحويل.</li>
+
+                        <li><span class="ltr-inline">Gray(y,x)</span>:
+                        درجة الرمادي للبكسل قبل التحويل.</li>
+
+                        <li><span class="ltr-inline">T</span>:
+                        قيمة العتبة Threshold، والقيمة الحالية هي
+                        <strong>${thresh}</strong>.</li>
+
+                        <li><span class="ltr-inline">255</span>:
+                        اللون الأبيض الكامل.</li>
+
+                        <li><span class="ltr-inline">0</span>:
+                        اللون الأسود الكامل.</li>
+                    </ul>
+                </div>
+
+                <div class="detail-box">
+                    <h4>2. كيف تعمل المعادلة؟</h4>
+
+                    <ul>
+                        <li>
+                            إذا كانت قيمة الرمادي أكبر من أو تساوي T
+                            تصبح قيمة البكسل 255، أي أبيض.
+                        </li>
+                        <li>
+                            إذا كانت قيمة الرمادي أقل من T
+                            تصبح قيمة البكسل 0، أي أسود.
+                        </li>
+                    </ul>
+
+                    <div class="math-note">
+                        قيمة العتبة المستخدمة حالياً:
+                        T = ${thresh}
+                    </div>
+                </div>
+
+                <div class="detail-box">
+                    <h4>3. الخطوة الأولى: حساب درجة الرمادي</h4>
+
+                    <p>
+                        قبل المقارنة مع العتبة يجب حساب درجة الرمادي
+                        من قيم RGB.
+                    </p>
+
+                    <div class="calculation-box">R = ${R}
+G = ${G}
+B = ${B}
+
+Gray = 0.299R + 0.587G + 0.114B
+
+Gray = (0.299 × ${R})
+     + (0.587 × ${G})
+     + (0.114 × ${B})
+
+Gray = ${(0.299 * R).toFixed(2)}
+     + ${(0.587 * G).toFixed(2)}
+     + ${(0.114 * B).toFixed(2)}
+
+Gray = ${gray.toFixed(2)}</div>
+                </div>
+
+                <div class="detail-box">
+                    <h4>4. الخطوة الثانية: المقارنة مع العتبة</h4>
+
+                    <div class="calculation-box">Gray = ${gray.toFixed(2)}
+Threshold T = ${thresh}
+
+هل Gray >= T ؟
+
+${gray.toFixed(2)} >= ${thresh}
+
+${gray >= thresh ? "نعم: الناتج أبيض = 255" : "لا: الناتج أسود = 0"}
+
+BW = ${bw}</div>
+
+                    <p>
+                        النتيجة في هذا المثال هي
+                        <strong>${bw === 255 ? "الأبيض" : "الأسود"}</strong>.
+                    </p>
+                </div>
+
+                <div class="detail-box">
+                    <h4>5. تأثير تغيير قيمة Threshold</h4>
+
+                    <p>
+                        عندما نزيد قيمة العتبة، يصبح من الصعب على البكسل
+                        أن يتحول إلى اللون الأبيض.
+                        وعندما نقللها، تصبح بكسلات أكثر بيضاء.
+                    </p>
+
+                    <table class="weights-table">
+                        <thead>
+                            <tr>
+                                <th>درجة الرمادي</th>
+                                <th>قيمة العتبة</th>
+                                <th>الناتج</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>180</td><td>127</td><td>أبيض 255</td></tr>
+                            <tr><td>100</td><td>127</td><td>أسود 0</td></tr>
+                            <tr><td>180</td><td>200</td><td>أسود 0</td></tr>
+                            <tr><td>100</td><td>50</td><td>أبيض 255</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="detail-box">
+                    <h4>6. شرح تنفيذ العملية في C++</h4>
+
+                    <ol class="step-list">
+                        <li>
+                            نستخدم cvtColor لتحويل الصورة إلى درجات الرمادي.
+                        </li>
+                        <li>
+                            ننشئ مصفوفة جديدة لتخزين الأبيض والأسود.
+                        </li>
+                        <li>
+                            نقرأ درجة الرمادي لكل بكسل.
+                        </li>
+                        <li>
+                            نقارن قيمة البكسل مع T.
+                        </li>
+                        <li>
+                            إذا كانت القيمة أكبر من أو تساوي T نخزن 255.
+                        </li>
+                        <li>
+                            إذا كانت أقل من T نخزن 0.
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="detail-box">
+                    <h4>7. كود C++ المستخدم في العملية</h4>
+                    <pre class="cpp-code" id="cpp-code">${escapeHTML(cppCode)}</pre>
+                    <button class="copy-code-btn" onclick="copyCppCode()">
+                        📋 نسخ كود C++
+                    </button>
+                </div>
+
+            </div>
+        `;
+    }
+
+
+    // -------------------------------------------------
+    // 5 - ROTATE
+    // -------------------------------------------------
+
+    else if (op === "Rotate") {
+
+        const H = 4;
+        const y = 0;
+        const x = 1;
+
+        const newY = x;
+        const newX = H - 1 - y;
+
+        const cppCode = `// تدوير الصورة 90 درجة مع عقارب الساعة
+
+#include <opencv2/opencv.hpp>
+using namespace cv;
+
+Mat rotate90Clockwise(Mat image)
+{
+    // أبعاد الصورة الأصلية
+    int H = image.rows;
+    int W = image.cols;
+
+    // بعد التدوير يتبادل العرض والارتفاع
+    Mat result(W, H, image.type());
+
+    // المرور على صفوف الصورة الأصلية
+    for (int y = 0; y < H; y++)
+    {
+        // المرور على أعمدة الصورة الأصلية
+        for (int x = 0; x < W; x++)
+        {
+            // قراءة البكسل الأصلي
+            Vec3b pixel = image.at<Vec3b>(y, x);
+
+            // حساب موقع البكسل الجديد
+            int newY = x;
+            int newX = H - 1 - y;
+
+            // تخزين البكسل في الموقع الجديد
+            result.at<Vec3b>(newY, newX) = pixel;
+        }
+    }
+
+    return result;
+}`;
+
+        content = `
+
+            <div class="section-title">
+                🔄 Rotate 90° - شرح معادلة تدوير الصورة
+            </div>
+
+            <div class="formula-display-box">
+                Iout(x,H - 1 - y) = Iin(y,x)
+            </div>
+
+            <div class="explanation-grid">
+
+                <p>
+                    تستخدم هذه العملية لتدوير الصورة 90 درجة مع اتجاه
+                    عقارب الساعة. يتم نقل كل بكسل من موقعه القديم
+                    إلى موقع جديد داخل مصفوفة الصورة الناتجة.
+                </p>
+
+                <div class="detail-box">
+                    <h4>1. شرح رموز المعادلة</h4>
+
+                    <ul>
+                        <li><span class="ltr-inline">Iin(y,x)</span>:
+                        قيمة البكسل في الصورة الأصلية.</li>
+
+                        <li><span class="ltr-inline">Iout</span>:
+                        الصورة الناتجة بعد التدوير.</li>
+
+                        <li><span class="ltr-inline">H</span>:
+                        ارتفاع الصورة الأصلية، أي عدد الصفوف.</li>
+
+                        <li><span class="ltr-inline">W</span>:
+                        عرض الصورة الأصلية، أي عدد الأعمدة.</li>
+
+                        <li><span class="ltr-inline">y</span>:
+                        رقم الصف الأصلي.</li>
+
+                        <li><span class="ltr-inline">x</span>:
+                        رقم العمود الأصلي.</li>
+
+                        <li><span class="ltr-inline">H - 1 - y</span>:
+                        رقم العمود الجديد بعد التدوير.</li>
+                    </ul>
+                </div>
+
+                <div class="detail-box">
+                    <h4>2. لماذا تتغير أبعاد الصورة؟</h4>
+
+                    <p>
+                        عندما ندور الصورة 90 درجة، يصبح العرض القديم
+                        هو الارتفاع الجديد، ويصبح الارتفاع القديم
+                        هو العرض الجديد.
+                    </p>
+
+                    <div class="calculation-box">الأبعاد الأصلية:
+Height = H
+Width  = W
+
+الأبعاد بعد التدوير:
+New Height = W
+New Width  = H</div>
+                </div>
+
+                <div class="detail-box">
+                    <h4>3. الشرح الحسابي خطوة بخطوة</h4>
+
+                    <p>
+                        لنفترض أن ارتفاع الصورة H يساوي 4،
+                        وأن البكسل الأصلي موجود في الصف y=0 والعمود x=1.
+                    </p>
+
+                    <div class="calculation-box">H = ${H}
+y = ${y}
+x = ${x}
+
+المعادلة:
+NewY = x
+NewX = H - 1 - y
+
+التعويض:
+NewY = ${x}
+
+NewX = ${H} - 1 - ${y}
+NewX = ${newX}
+
+الموقع الجديد:
+(NewY, NewX) = (${newY}, ${newX})</div>
+
+                    <p>
+                        إذن البكسل الذي كان في الصف 0 والعمود 1
+                        ينتقل إلى الصف 1 والعمود 3.
+                    </p>
+                </div>
+
+                <div class="detail-box">
+                    <h4>4. مثال توضيحي للمصفوفة</h4>
+
+                    <p>المصفوفة الأصلية:</p>
+
+                    <div class="calculation-box">1  2  3
+4  5  6</div>
+
+                    <p>بعد التدوير 90 درجة مع عقارب الساعة:</p>
+
+                    <div class="calculation-box">4  1
+5  2
+6  3</div>
+
+                    <div class="math-note">
+                        لاحظ أن الصفوف والأعمدة تغيرت أما قيم البكسلات
+                        نفسها فلم تتغير.
+                    </div>
+                </div>
+
+                <div class="detail-box">
+                    <h4>5. شرح تنفيذ العملية في C++</h4>
+
+                    <ol class="step-list">
+                        <li>
+                            نقرأ ارتفاع الصورة باستخدام image.rows.
+                        </li>
+                        <li>
+                            نقرأ عرض الصورة باستخدام image.cols.
+                        </li>
+                        <li>
+                            ننشئ مصفوفة جديدة بأبعاد معكوسة.
+                        </li>
+                        <li>
+                            نمر على كل بكسل في الصورة الأصلية.
+                        </li>
+                        <li>
+                            نحسب الصف الجديد باستخدام newY = x.
+                        </li>
+                        <li>
+                            نحسب العمود الجديد باستخدام newX = H - 1 - y.
+                        </li>
+                        <li>
+                            ننقل البكسل إلى موقعه الجديد.
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="detail-box">
+                    <h4>6. كود C++ المستخدم في العملية</h4>
+                    <pre class="cpp-code" id="cpp-code">${escapeHTML(cppCode)}</pre>
+                    <button class="copy-code-btn" onclick="copyCppCode()">
+                        📋 نسخ كود C++
+                    </button>
+                </div>
+
+            </div>
+        `;
+    }
+
+    container.innerHTML = content;
+}
+
+
+// =====================================================
+// حماية كود C++ عند عرضه داخل HTML
+// =====================================================
+
+function escapeHTML(code) {
+
+    return code
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+
+// =====================================================
+// نسخ كود C++ للعملية المختارة
+// =====================================================
+
+function copyCppCode() {
+
+    const codeElement = document.getElementById("cpp-code");
+
+    if (!codeElement) return;
+
+    const code = codeElement.textContent;
+
+    navigator.clipboard.writeText(code)
+        .then(function() {
+            alert("تم نسخ كود C++ بنجاح.");
+        })
+        .catch(function() {
+            const textArea = document.createElement("textarea");
+
+            textArea.value = code;
+            document.body.appendChild(textArea);
+
+            textArea.select();
+            document.execCommand("copy");
+
+            textArea.remove();
+
+            alert("تم نسخ الكود.");
+        });
+}
+
+
+// =====================================================
+// تنفيذ معالجة الصورة
+// =====================================================
+
+function processSingle() {
+
+    if (!singleImgObj) return;
+
+    const t0 = performance.now();
+
+    const op = getSelectedOperation();
+
+    const beta = parseInt(document.getElementById("beta-input").value);
+    const thresh = parseInt(document.getElementById("thresh-input").value);
+
+    const w = singleImgObj.width;
+    const h = singleImgObj.height;
+
+    const tempCanvas = document.createElement("canvas");
+
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+
+    const tCtx = tempCanvas.getContext("2d");
+
+    tCtx.drawImage(singleImgObj, 0, 0);
+
+    const srcData = tCtx.getImageData(0, 0, w, h);
+
+    const outCanvas = document.getElementById("proc-canvas");
+
+    const outW = (op === "Rotate") ? h : w;
+    const outH = (op === "Rotate") ? w : h;
+
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+
+    const oCtx = outCanvas.getContext("2d");
+
+    const dstData = oCtx.createImageData(outW, outH);
+
+    const s = srcData.data;
+    const d = dstData.data;
+
+
+    for (let y = 0; y < h; y++) {
+
+        for (let x = 0; x < w; x++) {
+
+            const idx = (y * w + x) * 4;
+
+            const r = s[idx];
+            const g = s[idx + 1];
+            const b = s[idx + 2];
+            const a = s[idx + 3];
+
+
+            // Grayscale
+
+            if (op === "Grayscale") {
+
+                const gray = Math.round(
+                    0.299 * r +
+                    0.587 * g +
+                    0.114 * b
+                );
+
+                d[idx] = gray;
+                d[idx + 1] = gray;
+                d[idx + 2] = gray;
+                d[idx + 3] = a;
+            }
+
+
+            // Brightness
+
+            else if (op === "Brightness") {
+
+                d[idx] = Math.min(255, Math.max(0, r + beta));
+
+                d[idx + 1] = Math.min(255, Math.max(0, g + beta));
+
+                d[idx + 2] = Math.min(255, Math.max(0, b + beta));
+
+                d[idx + 3] = a;
+            }
+
+
+            // Horizontal Flip
+
+            else if (op === "Flip") {
+
+                const flipIdx = (y * w + (w - 1 - x)) * 4;
+
+                d[flipIdx] = r;
+                d[flipIdx + 1] = g;
+                d[flipIdx + 2] = b;
+                d[flipIdx + 3] = a;
+            }
+
+
+            // Black and White
+
+            else if (op === "BW") {
+
+                const gray =
+                    0.299 * r +
+                    0.587 * g +
+                    0.114 * b;
+
+                const bw = (gray >= thresh) ? 255 : 0;
+
+                d[idx] = bw;
+                d[idx + 1] = bw;
+                d[idx + 2] = bw;
+                d[idx + 3] = a;
+            }
+
+
+            // Rotate 90 degrees clockwise
+
+            else if (op === "Rotate") {
+
+                const rotIdx = (x * outW + (h - 1 - y)) * 4;
+
+                d[rotIdx] = r;
+                d[rotIdx + 1] = g;
+                d[rotIdx + 2] = b;
+                d[rotIdx + 3] = a;
+            }
+
+        }
+    }
+
+
+    oCtx.putImageData(dstData, 0, 0);
+
+    outCanvas.style.display = "block";
+
+    document.getElementById("proc-placeholder").style.display = "none";
+
+    document.getElementById("download-btn").style.display = "inline-block";
+
+
+    const t1 = performance.now();
+
+    document.getElementById("stat-orig").innerText = `${h}x${w}`;
+
+    document.getElementById("stat-proc").innerText = `${outH}x${outW}`;
+
+    document.getElementById("stat-pixels").innerText =
+        (w * h).toLocaleString();
+
+    document.getElementById("stat-time").innerText =
+        `${(t1 - t0).toFixed(1)} ms`;
+
+
+    renderMatrixSample(s, w, h, d, outW, outH, op);
+}
+
+
+// =====================================================
+// عرض مصفوفة البكسلات
+// =====================================================
+
+function renderMatrixSample(s, w, h, d, outW, outH, op) {
+
+    let text = `=== 2D PIXEL MATRIX SAMPLE (4x4 Center) ===\n`;
+
+    text += `[BEFORE - RGB]:\n`;
+
+    const cy = Math.floor(h / 2);
+    const cx = Math.floor(w / 2);
+
+    for (
+        let y = Math.max(0, cy - 2);
+        y < Math.min(h, cy + 2);
+        y++
+    ) {
+
+        text += "[ ";
+
+        for (
+            let x = Math.max(0, cx - 2);
+            x < Math.min(w, cx + 2);
+            x++
+        ) {
+
+            const i = (y * w + x) * 4;
+
+            text += `(${s[i]},${s[i+1]},${s[i+2]}) `;
+        }
+
+        text += "]\n";
+    }
+
+
+    text += `\n[AFTER - ${op}]:\n`;
+
+    const acy = Math.floor(outH / 2);
+    const acx = Math.floor(outW / 2);
+
+    const isSingleChannel = (op === "Grayscale" || op === "BW");
+
+
+    for (
+        let y = Math.max(0, acy - 2);
+        y < Math.min(outH, acy + 2);
+        y++
+    ) {
+
+        text += "[ ";
+
+        for (
+            let x = Math.max(0, acx - 2);
+            x < Math.min(outW, acx + 2);
+            x++
+        ) {
+
+            const i = (y * outW + x) * 4;
+
+            if (isSingleChannel) {
+
+                text += String(d[i]).padStart(3, " ") + " ";
+
+            } else {
+
+                text += `(${d[i]},${d[i+1]},${d[i+2]}) `;
+            }
+        }
+
+        text += "]\n";
+    }
+
+    document.getElementById("matrix-console").innerText = text;
+}
+
+
+// =====================================================
+// تحميل الصورة الناتجة
+// =====================================================
+
+function downloadResult() {
+
+    const canvas = document.getElementById("proc-canvas");
+
+    const op = getSelectedOperation();
+
+    const link = document.createElement("a");
+
+    link.download = `processed_${op.toLowerCase()}.png`;
+
+    link.href = canvas.toDataURL("image/png");
+
+    link.click();
+}
+
+
+// =====================================================
+// بدء الصفحة
+// =====================================================
+
+updateFormulaExplanation();
+
+</script>
+
+</body>
+</html>
