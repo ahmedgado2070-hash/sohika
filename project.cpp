@@ -1,125 +1,437 @@
+
 #include <iostream>
-#include <fstream>
+#include <windows.h>
+#include <commdlg.h>
+#include <gdiplus.h>
+#include <shellapi.h>
 #include <vector>
 #include <string>
-#include <algorithm>
-#include <iomanip>
-#include <chrono>
-#include <opencv2/opencv.hpp>
 
-using namespace cv;
+#pragma comment(lib, "Gdiplus.lib")
+#pragma comment(lib, "Comdlg32.lib")
+#pragma comment(lib, "Shell32.lib")
+
 using namespace std;
+using namespace Gdiplus;
 
-Mat apply_op(const Mat& img, const string& op, int beta, int thresh_val) {
-    Mat out;
-    if (op == "Grayscale") {
-        out = Mat(img.rows, img.cols, CV_8UC1);
-        for (int y = 0; y < img.rows; y++) {
-            for (int x = 0; x < img.cols; x++) {
-                Vec3b p = img.at<Vec3b>(y, x);
-                out.at<uchar>(y, x) = static_cast<uchar>(0.299 * p[2] + 0.587 * p[1] + 0.114 * p[0]);
-            }
-        }
-    } else if (op == "Brightness") {
-        out = Mat(img.rows, img.cols, img.type());
-        for (int y = 0; y < img.rows; y++) {
-            for (int x = 0; x < img.cols; x++) {
-                Vec3b p = img.at<Vec3b>(y, x);
-                for (int c = 0; c < 3; c++) {
-                    int val = static_cast<int>(p[c]) + beta;
-                    out.at<Vec3b>(y, x)[c] = static_cast<uchar>(min(255, max(0, val)));
-                }
-            }
-        }
-    } else if (op == "Flip") {
-        out = Mat(img.rows, img.cols, img.type());
-        for (int y = 0; y < img.rows; y++) {
-            for (int x = 0; x < img.cols; x++) {
-                out.at<Vec3b>(y, img.cols - 1 - x) = img.at<Vec3b>(y, x);
-            }
-        }
-    } else if (op == "BW") {
-        Mat gray = apply_op(img, "Grayscale", beta, thresh_val);
-        out = Mat(img.rows, img.cols, CV_8UC1);
-        for (int y = 0; y < gray.rows; y++) {
-            for (int x = 0; x < gray.cols; x++) {
-                uchar g = gray.at<uchar>(y, x);
-                out.at<uchar>(y, x) = (g >= thresh_val) ? 255 : 0;
-            }
-        }
-    } else if (op == "Rotate") {
-        out = Mat(img.cols, img.rows, img.type());
-        for (int y = 0; y < img.rows; y++) {
-            for (int x = 0; x < img.cols; x++) {
-                out.at<Vec3b>(x, img.rows - 1 - y) = img.at<Vec3b>(y, x);
-            }
+// Pixel structure
+struct Pixel {
+    BYTE R, G, B;
+};
+
+// Image matrix
+using PixelMatrix = vector<vector<Pixel>>;
+
+
+// Get JPEG encoder
+int GetEncoderClsid(const WCHAR* format, CLSID* pClsid)
+{
+    UINT num = 0;
+    UINT size = 0;
+
+    GetImageEncodersSize(&num, &size);
+
+    if (size == 0)
+        return -1;
+
+    vector<BYTE> buffer(size);
+
+    ImageCodecInfo* codecs =
+        reinterpret_cast<ImageCodecInfo*>(buffer.data());
+
+    GetImageEncoders(num, size, codecs);
+
+    for (UINT i = 0; i < num; i++) {
+        if (wcscmp(codecs[i].MimeType, format) == 0) {
+            *pClsid = codecs[i].Clsid;
+            return i;
         }
     }
-    return out;
+
+    return -1;
 }
 
-void save_matrix_report(const Mat& orig, const Mat& proc, const string& op, double ms, const string& path) {
-    ofstream f(path);
-    f << "ORIG_SIZE=" << orig.rows << "x" << orig.cols << "\n";
-    f << "PROC_SIZE=" << proc.rows << "x" << proc.cols << "\n";
-    f << "PIXELS=" << (orig.rows * orig.cols) << "\n";
-    f << "TIME_MS=" << fixed << setprecision(1) << ms << "\n";
-    f << "MATRIX_START\n";
-    f << "=== 2D PIXEL MATRIX SAMPLE (4x4 Center) ===\n";
-    f << "[BEFORE - RGB]:\n";
-    int cy = orig.rows / 2, cx = orig.cols / 2;
-    for (int y = max(0, cy - 2); y < min(orig.rows, cy + 2); y++) {
-        f << "[ ";
-        for (int x = max(0, cx - 2); x < min(orig.cols, cx + 2); x++) {
-            Vec3b p = orig.at<Vec3b>(y, x);
-            f << "(" << (int)p[2] << "," << (int)p[1] << "," << (int)p[0] << ") ";
-        }
-        f << "]\n";
-    }
-    f << "\n[AFTER]:\n";
-    int acy = proc.rows / 2, acx = proc.cols / 2;
-    for (int y = max(0, acy - 2); y < min(proc.rows, acy + 2); y++) {
-        f << "[ ";
-        for (int x = max(0, acx - 2); x < min(proc.cols, acx + 2); x++) {
-            if (proc.channels() == 1) {
-                f << setw(3) << (int)proc.at<uchar>(y, x) << " ";
-            } else {
-                Vec3b p = proc.at<Vec3b>(y, x);
-                f << "(" << (int)p[2] << "," << (int)p[1] << "," << (int)p[0] << ") ";
-            }
-        }
-        f << "]\n";
-    }
-    f.close();
+
+// Choose JPG image
+wstring ChooseImage()
+{
+    OPENFILENAMEW ofn = {};
+    WCHAR fileName[MAX_PATH] = L"";
+
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;
+    ofn.lpstrFile = fileName;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.lpstrFilter =
+        L"JPEG Images (*.jpg;*.jpeg)\0*.jpg;*.jpeg\0All Files (*.*)\0*.*\0";
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameW(&ofn))
+        return fileName;
+
+    return L"";
 }
 
-int main(int argc, char** argv) {
-    if (argc < 2) return 1;
-    string mode = argv[1];
-    string in_path = argv[2];
-    Mat img = imread(in_path);
-    if (img.empty()) return 1;
 
-    if (mode == "single") {
-        string out_path = argv[3];
-        string rep_path = argv[4];
-        string op = argv[5];
-        int beta = stoi(argv[6]);
-        int thresh_val = stoi(argv[7]);
-        auto t1 = chrono::high_resolution_clock::now();
-        Mat proc = apply_op(img, op, beta, thresh_val);
-        auto t2 = chrono::high_resolution_clock::now();
-        double ms = chrono::duration<double, milli>(t2 - t1).count();
-        imwrite(out_path, proc);
-        save_matrix_report(img, proc, op, ms, rep_path);
-    } else if (mode == "all4") {
-        string dir = argv[3];
-        int beta = stoi(argv[4]);
-        int thresh_val = stoi(argv[5]);
-        imwrite(dir + "/out_gray.png", apply_op(img, "Grayscale", beta, thresh_val));
-        imwrite(dir + "/out_bright.png", apply_op(img, "Brightness", beta, thresh_val));
-        imwrite(dir + "/out_flip.png", apply_op(img, "Flip", beta, thresh_val));
-        imwrite(dir + "/out_bw.png", apply_op(img, "BW", beta, thresh_val));
+// Read image into matrix
+PixelMatrix ReadImageMatrix(
+    const wstring& path,
+    int& width,
+    int& height)
+{
+    Bitmap image(path.c_str());
+
+    width = image.GetWidth();
+    height = image.GetHeight();
+
+    PixelMatrix pixels(
+        height,
+        vector<Pixel>(width)
+    );
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+
+            Color color;
+
+            image.GetPixel(j, i, &color);
+
+            pixels[i][j].R = color.GetR();
+            pixels[i][j].G = color.GetG();
+            pixels[i][j].B = color.GetB();
+        }
     }
+
+    return pixels;
+}
+
+
+// Save matrix as JPG
+bool SaveImage(
+    const PixelMatrix& pixels,
+    int width,
+    int height,
+    const wstring& path)
+{
+    Bitmap bitmap(width, height, PixelFormat24bppRGB);
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+
+            Color color(
+                pixels[i][j].R,
+                pixels[i][j].G,
+                pixels[i][j].B
+            );
+
+            bitmap.SetPixel(j, i, color);
+        }
+    }
+
+    CLSID encoder;
+
+    if (GetEncoderClsid(L"image/jpeg", &encoder) < 0)
+        return false;
+
+    DeleteFileW(path.c_str());
+
+    return bitmap.Save(path.c_str(), &encoder, NULL) == Ok;
+}
+
+
+// Grayscale
+PixelMatrix Grayscale(
+    const PixelMatrix& original,
+    int height,
+    int width)
+{
+    PixelMatrix result = original;
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+
+            int gray = (int)(
+                0.299 * original[i][j].R +
+                0.587 * original[i][j].G +
+                0.114 * original[i][j].B
+            );
+
+            result[i][j].R = (BYTE)gray;
+            result[i][j].G = (BYTE)gray;
+            result[i][j].B = (BYTE)gray;
+        }
+    }
+
+    return result;
+}
+
+
+// Brightness adjustment
+PixelMatrix Brightness(
+    const PixelMatrix& original,
+    int height,
+    int width,
+    int amount)
+{
+    PixelMatrix result = original;
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+
+            int red = (int)original[i][j].R + amount;
+            int green = (int)original[i][j].G + amount;
+            int blue = (int)original[i][j].B + amount;
+
+            // Keep values between 0 and 255
+            if (red > 255) red = 255;
+            if (red < 0) red = 0;
+
+            if (green > 255) green = 255;
+            if (green < 0) green = 0;
+
+            if (blue > 255) blue = 255;
+            if (blue < 0) blue = 0;
+
+            result[i][j].R = (BYTE)red;
+            result[i][j].G = (BYTE)green;
+            result[i][j].B = (BYTE)blue;
+        }
+    }
+
+    return result;
+}
+
+
+// Horizontal Flip
+PixelMatrix HorizontalFlip(
+    const PixelMatrix& original,
+    int height,
+    int width)
+{
+    PixelMatrix result = original;
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+
+            result[i][j] =
+                original[i][width - 1 - j];
+        }
+    }
+
+    return result;
+}
+
+
+// Black and White
+PixelMatrix BlackWhite(
+    const PixelMatrix& original,
+    int height,
+    int width,
+    int threshold = 127)
+{
+    PixelMatrix result = original;
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+
+            int gray = (int)(
+                0.299 * original[i][j].R +
+                0.587 * original[i][j].G +
+                0.114 * original[i][j].B
+            );
+
+            BYTE value;
+
+            if (gray >= threshold)
+                value = 255;
+            else
+                value = 0;
+
+            result[i][j].R = value;
+            result[i][j].G = value;
+            result[i][j].B = value;
+        }
+    }
+
+    return result;
+}
+
+
+// Display image using Windows viewer
+void DisplayImage(const wstring& path)
+{
+    ShellExecuteW(
+        NULL,
+        L"open",
+        path.c_str(),
+        NULL,
+        NULL,
+        SW_SHOWNORMAL
+    );
+}
+
+
+// Create output file path
+wstring OutputPath(
+    const wstring& originalPath,
+    const wstring& fileName)
+{
+    size_t position = originalPath.find_last_of(L"\\/");
+
+    wstring folder = originalPath.substr(0, position + 1);
+
+    return folder + fileName;
+}
+
+
+// Main
+int main()
+{
+    // Start GDI+
+    GdiplusStartupInput gdiplusStartupInput;
+    ULONG_PTR gdiplusToken;
+
+    if (GdiplusStartup(
+        &gdiplusToken,
+        &gdiplusStartupInput,
+        NULL) != Ok)
+    {
+        cout << "GDI+ initialization failed!\n";
+        return 1;
+    }
+
+    cout << "=============================\n";
+    cout << " IMAGE PROCESSING PROJECT\n";
+    cout << "=============================\n";
+
+    // Select image
+    wstring imagePath = ChooseImage();
+
+    if (imagePath.empty()) {
+        cout << "No image selected!\n";
+        GdiplusShutdown(gdiplusToken);
+        return 0;
+    }
+
+    int width, height;
+
+    // Read image
+    PixelMatrix original =
+        ReadImageMatrix(imagePath, width, height);
+
+    if (width <= 0 || height <= 0) {
+        cout << "Invalid image!\n";
+        GdiplusShutdown(gdiplusToken);
+        return 1;
+    }
+
+    cout << "\nImage loaded successfully!\n";
+    cout << "Width: " << width << endl;
+    cout << "Height: " << height << endl;
+
+    cout << "\nOpening original image...\n";
+    DisplayImage(imagePath);
+
+    int choice;
+
+    do {
+        cout << "\n\n========== MENU ==========\n";
+        cout << "1. Grayscale\n";
+        cout << "2. Increase Brightness\n";
+        cout << "3. Decrease Brightness\n";
+        cout << "4. Horizontal Flip\n";
+        cout << "5. Black and White\n";
+        cout << "0. Exit\n";
+        cout << "==========================\n";
+
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        PixelMatrix result;
+        wstring outputPath;
+
+        switch (choice) {
+
+        case 1:
+            result = Grayscale(original, height, width);
+            outputPath = OutputPath(
+                imagePath,
+                L"Grayscale.jpg"
+            );
+            break;
+
+        case 2:
+            result = Brightness(
+                original, height, width, 40
+            );
+            outputPath = OutputPath(
+                imagePath,
+                L"Brightness_Increased.jpg"
+            );
+            break;
+
+        case 3:
+            result = Brightness(
+                original, height, width, -40
+            );
+            outputPath = OutputPath(
+                imagePath,
+                L"Brightness_Decreased.jpg"
+            );
+            break;
+
+        case 4:
+            result = HorizontalFlip(
+                original, height, width
+            );
+            outputPath = OutputPath(
+                imagePath,
+                L"Horizontal_Flip.jpg"
+            );
+            break;
+
+        case 5:
+            result = BlackWhite(
+                original, height, width
+            );
+            outputPath = OutputPath(
+                imagePath,
+                L"Black_White.jpg"
+            );
+            break;
+
+        case 0:
+            cout << "Exiting program...\n";
+            break;
+
+        default:
+            cout << "Invalid choice! Try again.\n";
+            continue;
+        }
+
+        if (choice >= 1 && choice <= 5) {
+
+            if (SaveImage(
+                result,
+                width,
+                height,
+                outputPath))
+            {
+                cout << "\nImage saved successfully!\n";
+                cout << "Opening processed image...\n";
+
+                DisplayImage(outputPath);
+            }
+            else {
+                cout << "\nError saving image!\n";
+            }
+        }
+
+    } while (choice != 0);
+
+    // Close GDI+
+    GdiplusShutdown(gdiplusToken);
+
     return 0;
 }
